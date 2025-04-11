@@ -9,8 +9,7 @@ public class PlMovement : MonoBehaviour {
     public float jumpPower = 7f;
     public float gravity = 10f;
     public float defaultHeight = 2f;
-
-
+    
     private Vector3 moveDirection = Vector3.zero;
     private float rotationX = 0;
     private CharacterController characterController;
@@ -24,6 +23,7 @@ public class PlMovement : MonoBehaviour {
     }
 
     void Update() {
+        // TODO change to camera relative movement (transform replace with cameraTransform) 
         Vector3 forward = transform.TransformDirection(Vector3.forward);
         Vector3 right = transform.TransformDirection(Vector3.right);
 
@@ -43,11 +43,7 @@ public class PlMovement : MonoBehaviour {
         if (!characterController.isGrounded) {
             moveDirection.y -= gravity * Time.deltaTime;
         }
-
-
-
+        
         characterController.Move(moveDirection * Time.deltaTime);
-
-
     }
 }

@@ -1,5 +1,6 @@
 using UnityEngine;
 
+// TODO change to camera controller with mouse inputs
 public class CameraFollow : MonoBehaviour
 {
     public Transform player;

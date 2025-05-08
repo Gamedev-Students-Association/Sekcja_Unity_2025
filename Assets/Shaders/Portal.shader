@@ -58,7 +58,6 @@ Shader "Example/URPUnlitShaderBasic"
                             dot(hash(i + float3(1.0, 1.0, 1.0)), f - float3(1.0, 1.0, 1.0)), u.x), u.y), u.z);
             }
 
-
             Varyings vert(Attributes IN)
             {
                 Varyings OUT;

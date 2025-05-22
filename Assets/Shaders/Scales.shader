@@ -2,11 +2,15 @@ Shader "Example/URPUnlitShaderBasic"
 {
     Properties
     {   
-        colorOne("Color One", Color) = (1,1,1,1)
-        colorTwo("Color Two", Color) = (1,1,1,1)
+        ScaleColFirst("Color One", Color) = (1,1,1,1)
+        ScaleColSecond("Color Two", Color) = (1,1,1,1)
+        BreakScaleFirstCol("BreakScaleFirstCol", Color) = (1, 1, 1, 1)
+        BreakScaleSecondCol("BreakScaleSecondCol", Color) = (1, 1, 1, 1)
         squareScale("square Scale", vector) = (1,1,1,1)
         HexagonRatio("Hexagon Ratio", Range(0, 1)) = 0.5
-        GradientHalo ("GradientHalo", Range(0, 1)) = 0
+        GradientHalo ("GradientHalo", float) = 0
+        BrokenTheshold ("BrokenThreshold", Range(0, 1)) = 0
+        GradientReduction ("GradientReduction", float) = 1
         _BaseMap("Python ssie Base Map", 2D) = "green"
     }
 
@@ -22,11 +26,15 @@ Shader "Example/URPUnlitShaderBasic"
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"   
 
-            vector colorOne;
-            vector colorTwo;  
+            vector ScaleColFirst;
+            vector ScaleColSecond;
+            vector BreakScaleFirstCol;
+            vector BreakScaleSecondCol;
             vector squareScale;
             float HexagonRatio;
             float GradientHalo;
+            float BrokenTheshold;
+            float GradientReduction;
 
             struct Attributes
             {
@@ -152,27 +160,27 @@ Shader "Example/URPUnlitShaderBasic"
                 //*
                 if (chunkId.y % 2 == 1)
                 {
-                    pos.x += 1 / squareScale.x / 2;
+                    pos.x += 1.0 / squareScale.x / 2.0;
                     hexId = floor(pos * squareScale.xy);
                 }
                 //*/
 
                 float2 innerPos = (pos * squareScale.xy) % float2(1, 1);
                 innerPos -= float2(0.5, 0.5);
-                innerPos *= 2;
+                innerPos *= 2.0;
 
                 //creating dumbass hexagon
                 color = float4(innerPos.x, innerPos.y, 0, 1);
                 //*
-                float scale = enlongedDiamond(innerPos, 0.5);
-                if (scale < 0) //main square
+                float shapeScale = enlongedDiamond(innerPos, 0.5);
+                if (shapeScale < 0) //main square
                 {
                 }
                 else //not hitted, neighbour chunk
                 {
                     //chunk combination
                     float2 neighbourChunkShift = float2(max(-1, sign(innerPos.x)), sign(innerPos.y));
-                    neighbourChunkShift *= 2;
+                    neighbourChunkShift *= 2.0;
                     neighbourChunkShift.x -= 1 * sign(innerPos.x);
 
                     float2 neighbourChunkIdShift = float2(max(-1, sign(innerPos.x) - 1), sign(innerPos.y)); //max(-1, sign(innerPos.x))
@@ -184,7 +192,7 @@ Shader "Example/URPUnlitShaderBasic"
                     hexId = float2(hexId.x + neighbourChunkIdShift.x, hexId.y + neighbourChunkIdShift.y);
                     innerPos -= neighbourChunkShift;
 
-                    scale = enlongedDiamond(innerPos, HexagonRatio);
+                    shapeScale = enlongedDiamond(innerPos, HexagonRatio);
                 }
                 //*/
 
@@ -204,13 +212,41 @@ Shader "Example/URPUnlitShaderBasic"
 
                 //pseudo random testing
                 float noise = LinearCombineNoise2d(hexId + float2(epsilon, epsilon), float2(0, 0));
+                noise = (noise + 1) / 2;
 
+                //shapeScale = pow(shapeScale, 6);
+                shapeScale = -shapeScale;
 
-                //color = lerp(colorOne, colorTwo, scale * 8);
-                color = lerp(colorOne, colorTwo, max(0, (-scale - GradientHalo) / GradientHalo));
-                color = float4(noise, noise, noise, 1);
+                if (BrokenTheshold < noise)
+                {
+
+                    float4 boxColor = lerp(BreakScaleFirstCol, BreakScaleSecondCol, max(0, (-shapeScale - GradientHalo) / GradientHalo));
+                    float4 sphereColor = lerp(BreakScaleSecondCol, BreakScaleFirstCol, length(innerPos));
+                    color = lerp(BreakScaleSecondCol, BreakScaleFirstCol, shapeScale);
+                    color *= boxColor;
+
+                    color *= lerp(1, 100, pow(1 - shapeScale, 36));
+                    //color *= pow(1 - shapeScale, 12));
+                }
+                else
+                {
+                    float4 boxColor = lerp(ScaleColSecond, ScaleColFirst, max(0, (shapeScale - GradientHalo) / GradientHalo));
+                    float4 sphereColor = lerp(ScaleColSecond, ScaleColFirst, length(innerPos));
+                    color = lerp(ScaleColSecond, ScaleColFirst, shapeScale);
+                    color *= boxColor; //* sphereColor
+                    color = clamp(color, 0, 1);
+                }
+
+                //color = lerp(ScaleColFirst, ScaleColSecond, scale * 8);
+                //color = float4(noise, noise, noise, 1);
 
                 //color = float4(hexId.x / squareScale.x, hexId.y / squareScale.y, 0, 1); //hexId.x / squareScale.x
+                
+                //return float4(int3(10 * color.xyz) / 10.0, color.w);
+                //float4 curGradient = float4(round(GradientReduction * color.xyz) / GradientReduction, color.w);
+                //float4 nextGradient = float4((round(GradientReduction * color.xyz) + 1) / GradientReduction, color.w);
+                //color = lerp(curGradient, nextGradient, 0.2);
+                //color = float4(round(GradientReduction * color.xyz) / GradientReduction, color.w);
 
                 return color;
             }

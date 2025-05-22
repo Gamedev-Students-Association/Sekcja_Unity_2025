@@ -1,16 +1,16 @@
-Shader "Example/URPUnlitShaderBasic"
+Shader "GSA/CloudsSkybox"
 {
     Properties
-    {  
-       colorOne("Color One", Color) = (1, 1, 1, 1) 
-       colorTwo("Color Two", Color) = (1, 1, 1, 1)
-       period("Period",float) = 0
-       lines("Lines",float) = 0
+    {
+        _NoiseScale("_NoiseScale", vector) = (1, 1, 1, 1)
+        _CloudThreshold("_CloudThreshold", Range(0, 1)) = 1
+        _TimeScale("_TimeScale", float) = 1
+        _RainIntensity("_RainIntensity", float) = 1
     }
 
     SubShader
     {
-        Tags { "RenderType" = "Opaque" "RenderPipeline" = "UniversalPipeline" }
+        Tags { "RenderType" = "Opaque" "RenderPipeline" = "UniversalPipeline" "PreviewType" = "Skybox" }
 
         Pass
         {
@@ -18,11 +18,6 @@ Shader "Example/URPUnlitShaderBasic"
             #pragma vertex vert
             #pragma fragment frag
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
-
-            vector colorOne;
-            vector colorTwo;
-            float period;
-            float lines;
 
             struct Attributes
             {
@@ -66,14 +61,37 @@ Shader "Example/URPUnlitShaderBasic"
                 return OUT;
             }
 
-            half4 frag(Varyings IN) : SV_Target
+
+            uniform vector _NoiseScale; //float3
+            uniform float _CloudThreshold;
+            uniform float _TimeScale;
+            uniform float _RainIntensity;
+
+            float4 frag(Varyings IN) : SV_Target
             {
                 float2 uv = IN.screenPosDupa.xy/IN.screenPosDupa.w;
-                float dupa = (uv.x * lines); //(_Time*period);
-                float unityTyDebilu = (_Time*period);
-                
-                half4 customColor = lerp(colorOne, colorTwo, uv.y+(GradientNoise(float3(dupa,unityTyDebilu,0))));
-                return customColor;
+                float4 col = float4(0, 0, 0, 1);
+
+                float noise3 = GradientNoise(float3((uv.x) * _NoiseScale.x, 0, 0 * _NoiseScale.z));
+                noise3 = (noise3 + 1) / 2;
+
+                float noise2 = GradientNoise(float3((uv.x) * _NoiseScale.x, uv.y * _NoiseScale.y, 0)); //(_Time.y / _TimeScale) * _NoiseScale.z
+                noise2 = (noise2 + 1) / 2;
+
+                float noise = GradientNoise(float3((uv.x + noise3 * _Time.y * _RainIntensity) * _NoiseScale.x, pow(uv.y, _Time.y / _TimeScale) * _NoiseScale.y, 0 * _NoiseScale.z));
+                noise = (noise + 1) / 2;
+
+
+                if (noise < _CloudThreshold)
+                {
+                    col = float4(0, 0, 0, 1);
+                }
+                else
+                {
+                    col = float4(1, 1, 1, 1);
+                }
+
+                return col;
             }
             ENDHLSL
         }

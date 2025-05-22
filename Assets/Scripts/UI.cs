@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class UI : MonoBehaviour
 {
-    [SerializeField] TMP_Text textCoinCount;
+    [SerializeField] TMP_Text textCoinCountbbbbb;
     private int coinCount = 0;
 
     private void OnEnable()
@@ -21,6 +21,6 @@ public class UI : MonoBehaviour
     private void CountCoin()
     {
         coinCount++;
-        textCoinCount.text = $": {coinCount}";
+        textCoinCountbbbbb.text = $": {coinCount}";
     }
 }

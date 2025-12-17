@@ -32,6 +32,9 @@ Shader "Unlit/hsvTest"
                 float4 vertex : SV_POSITION;
             };
 
+            sampler2D _MainTex;
+            float4 _MainTex_ST;
+
             v2f vert (appdata v)
             {
                 v2f o;
@@ -75,15 +78,14 @@ Shader "Unlit/hsvTest"
                 return float3(HCV.x, S, HCV.z);
             }
 
-
-            sampler2D _MainTex;
-            float4 _MainTex_ST;
-
             fixed4 frag (v2f i) : SV_Target
             {
                 // sample the texture
                 fixed4 col = tex2D(_MainTex, i.uv);
-                // apply fog
+
+                float3 hsv = RGBtoHSV(col.xyz);
+                col = float4(HSVtoRGB(hsv), col.a);
+                
                 UNITY_APPLY_FOG(i.fogCoord, col);
                 return col;
             }
